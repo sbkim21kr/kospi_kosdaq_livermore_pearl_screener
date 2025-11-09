@@ -1,0 +1,13 @@
+[project]
+name = "kospi-kosdaq-livermore-pearl-screener"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "finance-datareader>=0.9.96",
+    "numpy>=2.3.4",
+    "pandas>=2.3.3",
+    "streamlit>=1.51.0",
+    "tqdm>=4.67.1",
+]
