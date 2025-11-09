@@ -2,17 +2,20 @@ name: Run Pearl Screener
 
 on:
   schedule:
-    # Run every weekday at 17:30 KST (08:30 UTC)
-    - cron: '30 8 * * 1-5'
-  workflow_dispatch:  # allow manual trigger
+    - cron: '30 8 * * 1-5'   # 17:30 KST weekdays
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # ✅ allow pushing commits
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -27,6 +30,13 @@ jobs:
       - name: Run screener
         run: |
           python scanner.py
+
+      - name: Keep only latest CSV
+        run: |
+          # Remove all old CSVs except the newest one
+          latest=$(ls -t output/kospi_kosdaq_technical_*.csv | head -n 1)
+          ls output/kospi_kosdaq_technical_*.csv | grep -v "$latest" | xargs -r rm -f
+          echo "Keeping $latest, deleting older files"
 
       - name: Commit and push generated CSV
         run: |
