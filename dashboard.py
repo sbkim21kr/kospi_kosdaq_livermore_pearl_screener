@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import glob
 import os
-from datetime import datetime
+import re
+from datetime import datetime, timedelta, timezone
 
 # -------------------------------
 # Config
@@ -12,7 +13,19 @@ if not files:
     st.error("No CSV files found in output/")
     st.stop()
 DATA_FILE = max(files, key=os.path.getctime)
-FETCH_TIME = "17:30 KST (after market close)"
+
+# Try to extract date from filename: supports YYYY-MM-DD, YYYYMMDD, or with underscores
+filename = os.path.basename(DATA_FILE)
+m = re.search(r'(\d{4})[-_]?(\d{2})[-_]?(\d{2})', filename)
+
+if m:
+    y, mo, d = m.groups()
+    date_str = f"{y}-{mo}-{d}"
+    FETCH_TIME = f"{date_str} 17:30 KST (after market close)"
+else:
+    # Fallback: use file modified time, converted to KST
+    kst_time = datetime.fromtimestamp(os.path.getmtime(DATA_FILE), tz=timezone.utc) + timedelta(hours=9)
+    FETCH_TIME = kst_time.strftime("%Y-%m-%d %H:%M KST (file timestamp)")
 
 # -------------------------------
 # Page setup
@@ -36,7 +49,7 @@ st.markdown(f"ℹ️ Data last fetched by GitHub Action at **{FETCH_TIME}**")
 df = pd.read_csv(DATA_FILE)
 
 use_cols = [
-    "StockCode", "StockName_KR", "ClosingPrice", "VolumeSpike", "TrendArrow",
+    "StockCode", "StockName_KR", "MarketCap", "ClosingPrice", "VolumeSpike", "TrendArrow",
     "PearlScore_Normalized", "PearlScore_Stars", "PearlScore_Status"
 ]
 missing = [c for c in use_cols if c not in df.columns]
@@ -77,7 +90,7 @@ if not df.empty:
 
     st.markdown("## 🌟 Top 10 Pearls")
     styled_top10 = (
-        top10[["StockName_KR", "StockCode", "ClosingPrice", "VolumeSpike", "TrendArrow", "PearlScore_Stars", "PearlScore_Normalized"]]
+        top10[["StockName_KR", "StockCode", "MarketCap", "ClosingPrice", "VolumeSpike", "TrendArrow", "PearlScore_Stars", "PearlScore_Normalized"]]
         .style
         .applymap(color_trend, subset=["TrendArrow"])
         .applymap(color_stars, subset=["PearlScore_Stars"])
@@ -86,7 +99,7 @@ if not df.empty:
 
     st.markdown("## 🪙 Bottom 10 Pearls")
     styled_bottom10 = (
-        bottom10[["StockName_KR", "StockCode", "ClosingPrice", "VolumeSpike", "TrendArrow", "PearlScore_Stars", "PearlScore_Normalized"]]
+        bottom10[["StockName_KR", "StockCode", "MarketCap", "ClosingPrice", "VolumeSpike", "TrendArrow", "PearlScore_Stars", "PearlScore_Normalized"]]
         .style
         .applymap(color_trend, subset=["TrendArrow"])
         .applymap(color_stars, subset=["PearlScore_Stars"])

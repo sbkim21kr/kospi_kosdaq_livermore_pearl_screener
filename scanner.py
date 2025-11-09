@@ -2,34 +2,49 @@ import FinanceDataReader as fdr
 import pandas as pd
 import numpy as np
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
+from pykrx.stock import get_market_cap_by_date
 
 # -------------------------------
 # Config
 # -------------------------------
-today = datetime.today().strftime("%Y%m%d")
-OUTPUT_FILE = f"output/kospi_kosdaq_technical_{today}.csv"
+today = datetime.today()
+OUTPUT_FILE = f"output/kospi_kosdaq_technical_{today.strftime('%Y%m%d')}.csv"
 
 print("Fetching KRX listings...")
-kospi = fdr.StockListing('KOSPI')[['Code','Name']]
-kosdaq = fdr.StockListing('KOSDAQ')[['Code','Name']]
+krx = fdr.StockListing('KRX')[['Code','Name','Market']]
+
+# Filter for KOSPI + KOSDAQ
+kospi = krx[krx['Market'] == 'KOSPI']
+kosdaq = krx[krx['Market'] == 'KOSDAQ']
 stock_list = pd.concat([kospi, kosdaq]).drop_duplicates(subset=['Code']).reset_index(drop=True)
 
-# ✅ Remove test limit — now scans ALL stocks
-# stock_list = stock_list.head(30)
+# ✅ Test mode: limit to 10 tickers
+stock_list = stock_list.head(10)
 
 os.makedirs("output", exist_ok=True)
+
+# -------------------------------
+# Helper: find last trading day
+# -------------------------------
+def get_last_trading_day(code):
+    """Return the last trading day string (YYYYMMDD) for a given stock code."""
+    # Use PyKRX to get recent market cap data (last 10 days)
+    end = today.strftime("%Y%m%d")
+    start = (today - timedelta(days=10)).strftime("%Y%m%d")
+    cap_df = get_market_cap_by_date(start, end, code)
+    if cap_df.empty:
+        return None
+    return cap_df.index[-1].strftime("%Y%m%d")
 
 # -------------------------------
 # Technical Indicators
 # -------------------------------
 def compute_indicators(df):
-    # Moving averages
     ma20 = df['Close'].rolling(20).mean().iloc[-1]
     ma60 = df['Close'].rolling(60).mean().iloc[-1]
 
-    # RSI(14)
     delta = df['Close'].diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
@@ -38,7 +53,6 @@ def compute_indicators(df):
     rs = avg_gain.iloc[-1] / avg_loss.iloc[-1] if avg_loss.iloc[-1] != 0 else np.nan
     rsi = 100 - (100 / (1 + rs)) if rs == rs else np.nan
 
-    # MACD (12,26) and Signal (9)
     ema12 = df['Close'].ewm(span=12, adjust=False).mean()
     ema26 = df['Close'].ewm(span=26, adjust=False).mean()
     macd = ema12 - ema26
@@ -46,14 +60,12 @@ def compute_indicators(df):
     macd_val = macd.iloc[-1]
     macd_signal_val = macd_signal.iloc[-1]
 
-    # ATR (14)
     high_low = df['High'] - df['Low']
     high_close = np.abs(df['High'] - df['Close'].shift())
     low_close = np.abs(df['Low'] - df['Close'].shift())
     tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
     atr = tr.rolling(14).mean().iloc[-1]
 
-    # OBV
     obv = (np.sign(df['Close'].diff()) * df['Volume']).fillna(0).cumsum().iloc[-1]
 
     return ma20, ma60, rsi, macd_val, macd_signal_val, atr, obv
@@ -63,11 +75,24 @@ def compute_indicators(df):
 # -------------------------------
 results = []
 
-print(f"Fetching technical data for {len(stock_list)} stocks...")
+print(f"Fetching technical + fundamental data for {len(stock_list)} stocks...")
 for i, stock in enumerate(stock_list.itertuples(), start=1):
     code = stock.Code
     name = stock.Name
+
     try:
+        # ✅ Get MarketCap from PyKRX using last trading day
+        try:
+            last_day = get_last_trading_day(code)
+            if last_day:
+                cap_df = get_market_cap_by_date(last_day, last_day, code)
+                market_cap = cap_df['시가총액'].iloc[0] if not cap_df.empty else None
+            else:
+                market_cap = None
+        except Exception:
+            market_cap = None
+
+        # ✅ Get OHLCV data from FinanceDataReader
         df = fdr.DataReader(code)
         if df.empty:
             continue
@@ -76,7 +101,6 @@ for i, stock in enumerate(stock_list.itertuples(), start=1):
         daily_volume = int(df['Volume'].iloc[-1])
         avg_volume = df['Volume'].rolling(20).mean().iloc[-1]
 
-        # Safeguard: mark missing volume data
         if daily_volume == 0 or pd.isna(avg_volume) or avg_volume == 0:
             volume_spike = np.nan
             data_status = "Data Missing"
@@ -84,10 +108,9 @@ for i, stock in enumerate(stock_list.itertuples(), start=1):
             volume_spike = round(daily_volume / avg_volume, 2)
             data_status = "OK"
 
-        # --- TrendArrow with tolerance ---
         ma5 = df['Close'].rolling(5).mean().iloc[-1]
         diff = closing_price - ma5
-        tolerance = closing_price * 0.002  # ±0.2% tolerance band
+        tolerance = closing_price * 0.002
 
         if abs(diff) <= tolerance:
             trend_arrow = "→"
@@ -98,9 +121,7 @@ for i, stock in enumerate(stock_list.itertuples(), start=1):
 
         ma20, ma60, rsi, macd_val, macd_signal_val, atr, obv = compute_indicators(df)
 
-        # --- PearlScore (improved composite metric) ---
         if pd.notna(volume_spike):
-            # TrendStrength: count bullish signals
             bullish_signals = 0
             if closing_price > ma20:
                 bullish_signals += 1
@@ -110,22 +131,17 @@ for i, stock in enumerate(stock_list.itertuples(), start=1):
                 bullish_signals += 1
             trend_strength = 1 + 0.2 * bullish_signals
 
-            # MomentumQuality: RSI proximity to 50
             momentum_quality = 1 - abs(rsi - 50) / 50 if rsi == rsi else 1.0
             momentum_quality = max(momentum_quality, 0)
 
-            # VolatilityPenalty: ATR relative to price
             volatility_penalty = 1 + (atr / closing_price if closing_price > 0 else 0)
 
-            # Final PearlScore (raw)
             pearl_score = (volume_spike * trend_strength * momentum_quality) / volatility_penalty
             pearl_score = float(round(pearl_score, 2))
 
-            # Normalized PearlScore (0–100 scale)
             pearl_score_norm = min(max(pearl_score / 2.0 * 100, 0), 100)
             pearl_score_norm = float(round(pearl_score_norm, 1))
 
-            # Star rating
             if pearl_score_norm >= 81:
                 stars = "★★★★★"
             elif pearl_score_norm >= 61:
@@ -146,6 +162,7 @@ for i, stock in enumerate(stock_list.itertuples(), start=1):
         results.append({
             "StockCode": code,
             "StockName_KR": name,
+            "MarketCap": market_cap,  # ✅ raw number from PyKRX
             "ClosingPrice": closing_price,
             "DailyVolume": daily_volume,
             "VolumeSpike": volume_spike,
@@ -167,9 +184,7 @@ for i, stock in enumerate(stock_list.itertuples(), start=1):
         print(f"Error with {code}: {e}")
 
     time.sleep(0.5)
-
-    if i % 50 == 0:  # progress every 50 stocks
-        print(f"Processed {i} / {len(stock_list)} stocks...")
+    print(f"Processed {i} / {len(stock_list)} stocks...")
 
 # -------------------------------
 # Save results

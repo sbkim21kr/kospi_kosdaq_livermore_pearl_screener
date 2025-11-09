@@ -8,6 +8,8 @@ dependencies = [
     "finance-datareader>=0.9.96",
     "numpy>=2.3.4",
     "pandas>=2.3.3",
+    "pykrx>=1.0.51",
+    "setuptools>=80.9.0",
     "streamlit>=1.51.0",
     "tqdm>=4.67.1",
 ]
