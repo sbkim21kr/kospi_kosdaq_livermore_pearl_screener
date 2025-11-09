@@ -5,6 +5,7 @@ import time
 from datetime import datetime, timedelta
 import os
 from pykrx.stock import get_market_cap_by_date
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # -------------------------------
 # Config
@@ -13,15 +14,14 @@ today = datetime.today()
 OUTPUT_FILE = f"output/kospi_kosdaq_technical_{today.strftime('%Y%m%d')}.csv"
 
 print("Fetching KRX listings...")
-krx = fdr.StockListing('KRX')[['Code','Name','Market']]
+krx = fdr.StockListing('KRX')[['Code', 'Name', 'Market']]
 
 # Filter for KOSPI + KOSDAQ
 kospi = krx[krx['Market'] == 'KOSPI']
 kosdaq = krx[krx['Market'] == 'KOSDAQ']
 stock_list = pd.concat([kospi, kosdaq]).drop_duplicates(subset=['Code']).reset_index(drop=True)
 
-# ✅ Test mode: limit to 10 tickers
-stock_list = stock_list.head(10)
+print(f"Total stocks to process: {len(stock_list)}")
 
 os.makedirs("output", exist_ok=True)
 
@@ -30,7 +30,6 @@ os.makedirs("output", exist_ok=True)
 # -------------------------------
 def get_last_trading_day(code):
     """Return the last trading day string (YYYYMMDD) for a given stock code."""
-    # Use PyKRX to get recent market cap data (last 10 days)
     end = today.strftime("%Y%m%d")
     start = (today - timedelta(days=10)).strftime("%Y%m%d")
     cap_df = get_market_cap_by_date(start, end, code)
@@ -71,17 +70,13 @@ def compute_indicators(df):
     return ma20, ma60, rsi, macd_val, macd_signal_val, atr, obv
 
 # -------------------------------
-# Main loop
+# Worker function for one stock
 # -------------------------------
-results = []
-
-print(f"Fetching technical + fundamental data for {len(stock_list)} stocks...")
-for i, stock in enumerate(stock_list.itertuples(), start=1):
+def process_stock(stock):
     code = stock.Code
     name = stock.Name
-
     try:
-        # ✅ Get MarketCap from PyKRX using last trading day
+        # MarketCap
         try:
             last_day = get_last_trading_day(code)
             if last_day:
@@ -92,10 +87,10 @@ for i, stock in enumerate(stock_list.itertuples(), start=1):
         except Exception:
             market_cap = None
 
-        # ✅ Get OHLCV data from FinanceDataReader
+        # OHLCV
         df = fdr.DataReader(code)
         if df.empty:
-            continue
+            return None
 
         closing_price = float(df['Close'].iloc[-1])
         daily_volume = int(df['Volume'].iloc[-1])
@@ -159,10 +154,10 @@ for i, stock in enumerate(stock_list.itertuples(), start=1):
             pearl_score_norm = None
             stars = "☆☆☆☆☆"
 
-        results.append({
+        return {
             "StockCode": code,
             "StockName_KR": name,
-            "MarketCap": market_cap,  # ✅ raw number from PyKRX
+            "MarketCap": market_cap,
             "ClosingPrice": closing_price,
             "DailyVolume": daily_volume,
             "VolumeSpike": volume_spike,
@@ -178,13 +173,27 @@ for i, stock in enumerate(stock_list.itertuples(), start=1):
             "PearlScore_Normalized": pearl_score_norm,
             "PearlScore_Stars": stars,
             "PearlScore_Status": data_status
-        })
+        }
 
     except Exception as e:
         print(f"Error with {code}: {e}")
+        return None
 
-    time.sleep(0.5)
-    print(f"Processed {i} / {len(stock_list)} stocks...")
+# -------------------------------
+# Parallel execution
+# -------------------------------
+results = []
+max_workers = 8  # adjust based on GitHub runner capacity
+
+print("Starting parallel processing...")
+with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    futures = {executor.submit(process_stock, stock): stock.Code for stock in stock_list.itertuples()}
+    for i, future in enumerate(as_completed(futures), start=1):
+        res = future.result()
+        if res:
+            results.append(res)
+        if i % 50 == 0:
+            print(f"Processed {i} / {len(stock_list)} stocks...")
 
 # -------------------------------
 # Save results
