@@ -7,3 +7,5 @@ lxml
 requests
 tqdm
 plotly
+setuptools
+wheel
