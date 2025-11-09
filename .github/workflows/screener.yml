@@ -2,8 +2,8 @@ name: Run Pearl Screener
 
 on:
   schedule:
-    - cron: '30 8 * * 1-5'   # 17:30 KST weekdays
-  workflow_dispatch:
+    - cron: '30 8 * * 1-5'   # Runs every weekday at 17:30 KST (08:30 UTC)
+  workflow_dispatch:          # Allow manual trigger
 
 jobs:
   build:
@@ -31,17 +31,16 @@ jobs:
         run: |
           python scanner.py
 
-      - name: Keep only latest CSV
+      - name: Copy newest file to latest.csv and save fetch time
         run: |
-          # Remove all old CSVs except the newest one
           latest=$(ls -t output/kospi_kosdaq_technical_*.csv | head -n 1)
-          ls output/kospi_kosdaq_technical_*.csv | grep -v "$latest" | xargs -r rm -f
-          echo "Keeping $latest, deleting older files"
+          cp "$latest" output/latest.csv
+          date -u +"%Y-%m-%d %H:%M UTC" > output/fetch_time.txt
 
-      - name: Commit and push generated CSV
+      - name: Commit and push generated files
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add output/*.csv
+          git add output/latest.csv output/fetch_time.txt
           git commit -m "Update screener output [skip ci]" || echo "No changes to commit"
           git push
