@@ -1,6 +1,31 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.log
-output/*.csv
+*.py[cod]
+*$py.class
+
+# Virtual environments
 .venv/
+env/
 venv/
+
+# Logs
+*.log
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Cache
+*.cache
+*.tmp
+
+# Build / dist
+build/
+dist/
+*.egg-info/
+
+# Keep output CSVs tracked (removed output/ and *.csv ignores)
+# If you want to ignore other data files, list them explicitly instead
