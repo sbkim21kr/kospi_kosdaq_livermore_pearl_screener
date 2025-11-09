@@ -29,3 +29,7 @@ dist/
 
 # Keep output CSVs tracked (removed output/ and *.csv ignores)
 # If you want to ignore other data files, list them explicitly instead
+
+# Ignore workflow outputs
+output/latest.csv
+output/fetch_time.txt

@@ -82,45 +82,6 @@ The **Pearl Score** is a composite metric designed to highlight stocks with stro
 - Export filtered results as CSV with timestamped filenames.
 
 ---
-
-
-
-### 🔄 Data Flow Diagram (ASCII fallback)
-
-GitHub Actions Scheduler (17:30 KST weekdays)
-        |
-        v
-   scanner.py
-        |
-        v
-+----------------------+     +------------------------+
-| output/latest.csv    | --> | Streamlit Dashboard    |
-+----------------------+     |  - Top/Bottom 10       |
-        |                   |  - Filters             |
-        v                   |  - Exports             |
-+----------------------+     +------------------------+
-| output/fetch_time.txt|
-+----------------------+
-            |
-            v
-   Dashboard shows "Data last fetched ..."
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
----
 ## 🔄 Data Flow Diagram
 
 ```mermaid
