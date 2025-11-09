@@ -1,7 +1,7 @@
 streamlit
 pandas
 numpy
-financedatareader
+git+https://github.com/FinanceData/FinanceDataReader.git
 pykrx
 lxml
 requests
