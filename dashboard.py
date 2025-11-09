@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import glob
 import os
 import re
 from datetime import datetime, timedelta, timezone
@@ -8,20 +7,17 @@ from datetime import datetime, timedelta, timezone
 # -------------------------------
 # Config
 # -------------------------------
-files = glob.glob("output/kospi_kosdaq_technical_*.csv")
-if not files:
-    st.error("No CSV files found in output/")
+DATA_FILE = "output/latest.csv"
+FETCH_FILE = "output/fetch_time.txt"
+
+if not os.path.exists(DATA_FILE):
+    st.error("No CSV file found (expected output/latest.csv)")
     st.stop()
-DATA_FILE = max(files, key=os.path.getctime)
 
-# Try to extract date from filename: supports YYYY-MM-DD, YYYYMMDD, or with underscores
-filename = os.path.basename(DATA_FILE)
-m = re.search(r'(\d{4})[-_]?(\d{2})[-_]?(\d{2})', filename)
-
-if m:
-    y, mo, d = m.groups()
-    date_str = f"{y}-{mo}-{d}"
-    FETCH_TIME = f"{date_str} 17:30 KST (after market close)"
+# Prefer explicit fetch_time.txt written by workflow
+if os.path.exists(FETCH_FILE):
+    with open(FETCH_FILE) as f:
+        FETCH_TIME = f.read().strip()
 else:
     # Fallback: use file modified time, converted to KST
     kst_time = datetime.fromtimestamp(os.path.getmtime(DATA_FILE), tz=timezone.utc) + timedelta(hours=9)
@@ -124,19 +120,14 @@ with c3:
 # -------------------------------
 filtered = df.copy()
 
-# Arrow filter first (so ↑, ↓, → all show naturally)
 if arrow_filter != "All":
     filtered = filtered[filtered["TrendArrow"] == arrow_filter]
 
-# Then apply thresholds
 filtered = filtered[
     (filtered["VolumeSpike"] >= vol_spike_min) &
     (filtered["PearlScore_Normalized"] >= pearl_score_min)
 ]
 
-# -------------------------------
-# Sort and prepare display
-# -------------------------------
 filtered = filtered.sort_values(by="PearlScore_Normalized", ascending=False).reset_index(drop=True)
 
 # -------------------------------
@@ -163,7 +154,6 @@ st.markdown("Download the currently filtered screener results as a CSV file for 
 
 csv = filtered.to_csv(index=False).encode("utf-8")
 
-# meaningful filename with timestamp
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 file_name = f"pearl_screener_filtered_{timestamp}.csv"
 
