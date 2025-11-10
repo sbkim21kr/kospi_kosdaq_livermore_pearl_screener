@@ -20,56 +20,50 @@ This screener highlights potential "pearls" by combining **Volume Spike**, **Tre
 
 ---
 
-## 📊 Pearl Score Explained
+## 📊 Pearl Score — How It Works
 
-The **Pearl Score** is a composite metric designed to highlight stocks with strong technical setups. It combines **volume dynamics, trend strength, momentum quality, and volatility adjustment**.
+The **Pearl Score** is like a *health check* for a stock’s technical setup.  
+It blends four dimensions into one number:
 
-### 1. 🔥 Volume Spike
-- **Definition**: Ratio of today’s trading volume to the 20‑day average volume.
-- **Formula**:  
-  
+- **Market Attention (Volume Spike)**  
+  Is the stock attracting unusual trading activity compared to its 20‑day average?
 
-\[
-  \text{VolumeSpike} = \frac{\text{Daily Volume}}{\text{20‑day Average Volume}}
-  \]
+- **Trend Conviction (Trend Strength)**  
+  Is the price moving with authority?  
+  → Checks if the stock is above MA20, MA60, and if MACD is bullish.
 
+- **Momentum Balance (Momentum Quality)**  
+  Is the move sustainable?  
+  → Uses RSI to reward balanced momentum (not overheated, not too weak).
 
+- **Volatility Risk (Volatility Penalty)**  
+  Is the ride too bumpy?  
+  → Adjusts the score downward if ATR is high relative to price.
 
-### 2. ➡️ Trend Arrow
-- **Definition**: Short‑term trend indicator based on the 5‑day moving average.
-- **Logic**:
-  - Closing price ≈ MA5 (±0.2%) → `→` (sideways)
-  - Closing price > MA5 → `↑` (uptrend)
-  - Closing price < MA5 → `↓` (downtrend)
+---
 
-### 3. 📐 Technical Signals
-- MA20 / MA60 → medium & long‑term trend
-- RSI(14) → momentum oscillator
-- MACD vs Signal → trend confirmation
-- ATR → volatility measure
-- OBV → volume‑based momentum
+### 🧮 Formula (conceptual view)
 
-### 4. 💎 Pearl Score Calculation
 
 
 \[
-\text{PearlScore} = \frac{\text{VolumeSpike} \times \text{TrendStrength} \times \text{MomentumQuality}}{\text{VolatilityPenalty}}
+\text{PearlScore} = \frac{\text{Market Attention} \times \text{Trend Conviction} \times \text{Momentum Balance}}{\text{Volatility Risk}}
 \]
 
 
 
-- **Trend Strength**: 1 + 0.2 × (bullish signals: price > MA20, price > MA60, MACD > Signal)  
-- **Momentum Quality**: 1 − |RSI − 50| / 50  
-- **Volatility Penalty**: 1 + ATR / Closing Price  
-- **Normalized Pearl Score**: scaled to 0–100
+---
 
-### 5. ⭐ Star Ratings
-- ≥ 81 → ★★★★★  
-- ≥ 61 → ★★★★☆  
-- ≥ 41 → ★★★☆☆  
-- ≥ 21 → ★★☆☆☆  
-- > 0 → ★☆☆☆☆  
-- = 0 → ☆☆☆☆☆  
+### ⭐ Star Ratings
+
+| Pearl Score Range | Rating   |
+|-------------------|----------|
+| ≥ 81              | ★★★★★    |
+| ≥ 61              | ★★★★☆    |
+| ≥ 41              | ★★★☆☆    |
+| ≥ 21              | ★★☆☆☆    |
+| > 0               | ★☆☆☆☆    |
+| = 0               | ☆☆☆☆☆    |
 
 ---
 
@@ -82,6 +76,7 @@ The **Pearl Score** is a composite metric designed to highlight stocks with stro
 - Export filtered results as CSV with timestamped filenames.
 
 ---
+
 ## 🔄 Data Flow Diagram
 
 ```mermaid
