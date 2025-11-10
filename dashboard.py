@@ -32,10 +32,10 @@ st.set_page_config(page_title="Pearl Screener Dashboard", layout="wide")
 # Headline section
 # -------------------------------
 st.markdown("# 📈 KOSPI–KOSDAQ Livermore Pearl Screener")
-st.markdown("""
-A technical analysis dashboard inspired by **Livermore trading principles** and tailored for the Korean markets.  
-This screener highlights potential pearls by combining **VolumeSpike**, **TrendArrow**, and **PearlScore**.
-""")
+# st.markdown("""
+# A technical analysis dashboard inspired by **Livermore trading principles** and tailored for the Korean markets.  
+# This screener highlights potential pearls by combining **VolumeSpike**, **TrendArrow**, and **PearlScore**.
+# """)
 
 st.markdown(f"ℹ️ Data last fetched by GitHub Action at **{FETCH_TIME}**")
 
@@ -79,39 +79,39 @@ def highlight_missing(row):
 
 # -------------------------------
 # Summary panel: Top 10 / Bottom 10
-# -------------------------------
-if not df.empty:
-    top10 = df.sort_values(by="PearlScore_Normalized", ascending=False).head(10)
-    bottom10 = df.sort_values(by="PearlScore_Normalized", ascending=True).head(10)
+# # -------------------------------
+# if not df.empty:
+#     top10 = df.sort_values(by="PearlScore_Normalized", ascending=False).head(10)
+#     bottom10 = df.sort_values(by="PearlScore_Normalized", ascending=True).head(10)
 
-    st.markdown("## 🌟 Top 10 Pearls")
-    styled_top10 = (
-        top10[["StockName_KR", "StockCode", "MarketCap", "ClosingPrice", "VolumeSpike", "TrendArrow", "PearlScore_Stars", "PearlScore_Normalized"]]
-        .style
-        .applymap(color_trend, subset=["TrendArrow"])
-        .applymap(color_stars, subset=["PearlScore_Stars"])
-    )
-    st.dataframe(styled_top10, use_container_width=True)
+#     st.markdown("## 🌟 Top 10 Pearls")
+#     styled_top10 = (
+#         top10[["StockName_KR", "StockCode", "MarketCap", "ClosingPrice", "VolumeSpike", "TrendArrow", "PearlScore_Stars", "PearlScore_Normalized"]]
+#         .style
+#         .applymap(color_trend, subset=["TrendArrow"])
+#         .applymap(color_stars, subset=["PearlScore_Stars"])
+#     )
+#     st.dataframe(styled_top10, use_container_width=True)
 
-    st.markdown("## 🪙 Bottom 10 Pearls")
-    styled_bottom10 = (
-        bottom10[["StockName_KR", "StockCode", "MarketCap", "ClosingPrice", "VolumeSpike", "TrendArrow", "PearlScore_Stars", "PearlScore_Normalized"]]
-        .style
-        .applymap(color_trend, subset=["TrendArrow"])
-        .applymap(color_stars, subset=["PearlScore_Stars"])
-    )
-    st.dataframe(styled_bottom10, use_container_width=True)
+#     st.markdown("## 🪙 Bottom 10 Pearls")
+#     styled_bottom10 = (
+#         bottom10[["StockName_KR", "StockCode", "MarketCap", "ClosingPrice", "VolumeSpike", "TrendArrow", "PearlScore_Stars", "PearlScore_Normalized"]]
+#         .style
+#         .applymap(color_trend, subset=["TrendArrow"])
+#         .applymap(color_stars, subset=["PearlScore_Stars"])
+#     )
+#     st.dataframe(styled_bottom10, use_container_width=True)
 
-# -------------------------------
+# # -------------------------------
 # Filters
 # -------------------------------
 st.markdown("## 🔎 Filter Your Screener Results")
 
 c1, c2, c3 = st.columns(3)
 with c1:
-    vol_spike_min = st.number_input("Min VolumeSpike", value=1.0, step=0.1)
+    vol_spike_min = st.number_input("Min VolumeSpike", value=0.0, step=0.1)
 with c2:
-    pearl_score_min = st.number_input("Min PearlScore (Normalized)", value=50.0, step=1.0)
+    pearl_score_min = st.number_input("Min PearlScore (Normalized)", value=0.0, step=1.0)
 with c3:
     arrow_filter = st.selectbox("TrendArrow Filter", options=["All", "↑", "↓", "→"])
 
