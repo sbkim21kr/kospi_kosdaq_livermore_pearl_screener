@@ -45,10 +45,7 @@ It blends four dimensions into one number:
 ### 🧮 Formula (conceptual view)
 
 
-
-\[
-\text{PearlScore} = \frac{\text{Market Attention} \times \text{Trend Conviction} \times \text{Momentum Balance}}{\text{Volatility Risk}}
-\]
+PearlScore = (Market Attention × Trend Conviction × Momentum Balance) / Volatility Risk
 
 
 

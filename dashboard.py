@@ -14,15 +14,24 @@ if not os.path.exists(DATA_FILE):
     st.error("No CSV file found (expected output/latest.csv)")
     st.stop()
 
+# Define KST timezone
+KST = timezone(timedelta(hours=9))
+
 # Prefer explicit fetch_time.txt written by workflow
 if os.path.exists(FETCH_FILE):
     with open(FETCH_FILE) as f:
-        FETCH_TIME = f.read().strip()
+        raw = f.read().strip()
+    try:
+        # Example format: "2025-11-10 00:00 UTC"
+        dt_utc = datetime.strptime(raw, "%Y-%m-%d %H:%M UTC").replace(tzinfo=timezone.utc)
+        FETCH_TIME = dt_utc.astimezone(KST).strftime("%Y-%m-%d %H:%M KST")
+    except Exception:
+        FETCH_TIME = raw  # fallback if parsing fails
 else:
     # Fallback: use file modified time, converted to KST
-    kst_time = datetime.fromtimestamp(os.path.getmtime(DATA_FILE), tz=timezone.utc) + timedelta(hours=9)
+    kst_time = datetime.fromtimestamp(os.path.getmtime(DATA_FILE), tz=timezone.utc).astimezone(KST)
     FETCH_TIME = kst_time.strftime("%Y-%m-%d %H:%M KST (file timestamp)")
-
+    
 # -------------------------------
 # Page setup
 # -------------------------------
