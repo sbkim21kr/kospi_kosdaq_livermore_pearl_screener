@@ -128,7 +128,9 @@ filtered = filtered[
     (filtered["PearlScore_Normalized"] >= pearl_score_min)
 ]
 
-filtered = filtered.sort_values(by="PearlScore_Normalized", ascending=False).reset_index(drop=True)
+# ✅ Default sort by MarketCap descending
+filtered = filtered.sort_values(by="MarketCap", ascending=False).reset_index(drop=True)
+
 
 # -------------------------------
 # Conditional styling for main table
