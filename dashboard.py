@@ -144,7 +144,7 @@ styled = (
 # Show styled table
 # -------------------------------
 st.markdown("## 📊 Filtered Stocks")
-st.dataframe(styled, use_container_width=True)
+st.dataframe(styled, use_container_width=True, height=1000)
 
 # -------------------------------
 # Data export section (bottom)
